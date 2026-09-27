@@ -306,6 +306,71 @@ export function nodeCopyValue(text: string, node: JsonTreeNode): string {
   }
 }
 
+/** A tabular projection of an array node, ready to render as `<table>`. */
+export interface JsonTable {
+  columns: string[]
+  rows: string[][]
+}
+
+/** Locates a node by its path-based `id` without walking branches that cannot contain it. */
+export function findTreeNodeById(root: JsonTreeNode, id: string): JsonTreeNode | null {
+  if (root.id === id) return root
+  for (const child of root.children) {
+    // Child ids always extend their parent's id, so unrelated branches can be skipped.
+    if (id.startsWith(child.id) || child.id.startsWith(id)) {
+      const found = findTreeNodeById(child, id)
+      if (found) return found
+    }
+  }
+  return null
+}
+
+/** Scalars keep their copy value; objects and arrays collapse to one-line JSON. */
+function renderCellValue(text: string, node: JsonTreeNode): string {
+  const raw = nodeCopyValue(text, node)
+  return node.children.length > 0 ? minifyJson(raw) : raw
+}
+
+/**
+ * Projects an array node onto a table. Arrays of objects share one column per property key
+ * (first appearance wins); anything else becomes a single column named after the array path.
+ */
+export function buildArrayTable(text: string, node: JsonTreeNode): JsonTable {
+  const items = node.children
+  if (items.length === 0) return { columns: [], rows: [] }
+
+  const allObjects = items.every((item) => item.kind === 'object')
+  if (!allObjects) {
+    return {
+      columns: [node.id],
+      rows: items.map((item) => [renderCellValue(text, item)]),
+    }
+  }
+
+  const columns: string[] = []
+  const seen = new Set<string>()
+  for (const item of items) {
+    for (const child of item.children) {
+      const name = child.key ?? ''
+      if (!seen.has(name)) {
+        seen.add(name)
+        columns.push(name)
+      }
+    }
+  }
+
+  const rows = items.map((item) => {
+    const byKey = new Map<string, JsonTreeNode>()
+    for (const child of item.children) byKey.set(child.key ?? '', child)
+    return columns.map((column) => {
+      const child = byKey.get(column)
+      return child ? renderCellValue(text, child) : ''
+    })
+  })
+
+  return { columns, rows }
+}
+
 /** Property names used anywhere in the document, most frequent first. */
 export function collectPropertyKeys(text: string): string[] {
   const root = parseTree(text, undefined, STRICT_JSON_OPTIONS)

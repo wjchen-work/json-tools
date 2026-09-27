@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue'
 import JsonTreePanel from '@/components/JsonTreePanel.vue'
+import ListViewPanel from '@/components/ListViewPanel.vue'
 import MonacoJsonEditor from '@/components/MonacoJsonEditor.vue'
 import ProblemsPanel from '@/components/ProblemsPanel.vue'
 import SchemaPanel from '@/components/SchemaPanel.vue'
@@ -250,5 +251,6 @@ async function onFileChange(event: Event): Promise<void> {
     </Transition>
 
     <SchemaPanel />
+    <ListViewPanel />
   </div>
 </template>

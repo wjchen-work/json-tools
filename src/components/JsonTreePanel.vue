@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useJsonDocumentStore } from '@/stores/jsonDocument'
+import { useListViewStore } from '@/stores/listView'
 import { nodeCopyValue, type JsonTreeNode } from '@/utils/json'
 
 interface TreeRow {
@@ -34,6 +35,7 @@ const MENU_PADDING = 4
 const props = defineProps<{ visible?: boolean }>()
 
 const store = useJsonDocumentStore()
+const listView = useListViewStore()
 const overrides = ref(new Map<string, boolean>())
 const scroller = ref<HTMLDivElement | null>(null)
 const scrollTop = ref(0)
@@ -92,7 +94,8 @@ function setAllExpanded(expanded: boolean): void {
 
 function openContextMenu(event: MouseEvent, node: JsonTreeNode): void {
   activeId.value = node.id
-  const rows = node.key === null ? 2 : 3
+  const baseRows = node.key === null ? 2 : 3
+  const rows = baseRows + (node.kind === 'array' ? 1 : 0)
   const height = rows * MENU_ROW_HEIGHT + MENU_PADDING * 2
   contextMenu.value = {
     x: Math.max(8, Math.min(event.clientX, window.innerWidth - MENU_WIDTH - 8)),
@@ -132,6 +135,13 @@ function copyValue(): void {
   if (!node) return
   // 基础类型只复制值，对象/数组复制完整 JSON 源码。
   void copyToClipboard(nodeCopyValue(store.text, node), '已复制值')
+}
+
+function openList(): void {
+  const node = contextMenu.value?.node
+  if (!node || node.kind !== 'array') return
+  closeContextMenu()
+  listView.openTab(node.id)
 }
 
 function onKeydown(event: KeyboardEvent): void {
@@ -274,6 +284,15 @@ onBeforeUnmount(() => {
         </button>
         <button type="button" class="tree-menu-item" role="menuitem" @click="copyValue()">
           复制值
+        </button>
+        <button
+          v-if="contextMenu.node.kind === 'array'"
+          type="button"
+          class="tree-menu-item"
+          role="menuitem"
+          @click="openList()"
+        >
+          列表查看
         </button>
       </div>
     </Teleport>
