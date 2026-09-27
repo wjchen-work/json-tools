@@ -1,4 +1,4 @@
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { defineStore } from 'pinia'
 import {
   analyzeJson,
@@ -69,8 +69,22 @@ const BROKEN_SAMPLE = `{
 
 const NOTICE_DURATION = 2600
 
+const STORAGE_KEY = 'json-tools:document'
+const PERSIST_DELAY = 250
+
+/** Restores the last edit; the sample is only used when nothing has been stored yet. */
+function loadDocument(): string {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY)
+    return raw === null ? VALID_SAMPLE : raw
+  } catch {
+    // Corrupted or unavailable storage should not break the app; fall back to the sample.
+    return VALID_SAMPLE
+  }
+}
+
 export const useJsonDocumentStore = defineStore('jsonDocument', () => {
-  const text = ref(VALID_SAMPLE)
+  const text = ref(loadDocument())
   const indent = ref<IndentOption>(2)
   const theme = ref<ThemeMode>('light')
   const cursor = ref<TextPosition>({ line: 1, column: 1 })
@@ -90,6 +104,28 @@ export const useJsonDocumentStore = defineStore('jsonDocument', () => {
   )
 
   let noticeTimer: number | undefined
+  let persistTimer: number | undefined
+
+  function persistNow(): void {
+    if (persistTimer !== undefined) {
+      window.clearTimeout(persistTimer)
+      persistTimer = undefined
+    }
+    try {
+      localStorage.setItem(STORAGE_KEY, text.value)
+    } catch {
+      // Quota or private-mode failures are non-fatal: editing keeps working in memory.
+    }
+  }
+
+  function schedulePersist(): void {
+    if (persistTimer !== undefined) window.clearTimeout(persistTimer)
+    persistTimer = window.setTimeout(persistNow, PERSIST_DELAY)
+  }
+
+  watch(text, schedulePersist)
+  // Flush the debounced write so a quick close after typing does not drop the last edits.
+  window.addEventListener('beforeunload', persistNow)
 
   function notify(message: string): void {
     notice.value = message
