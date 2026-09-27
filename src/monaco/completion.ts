@@ -1,5 +1,6 @@
 import * as monaco from 'monaco-editor'
 import { getLocation, type JSONPath } from 'jsonc-parser'
+import { DOCUMENT_URI } from '@/monaco/uri'
 import { collectPropertyKeys, existingKeysAt } from '@/utils/json'
 
 /** Field names offered when the document itself has nothing to suggest. */
@@ -210,6 +211,9 @@ export function registerJsonCompletion(): monaco.IDisposable {
   return monaco.languages.registerCompletionItemProvider('json', {
     triggerCharacters: ['"', ':'],
     provideCompletionItems(model, position) {
+      // Only the main document gets the document-aware suggestions; the schema content editor
+      // falls back to Monaco's built-in JSON completion.
+      if (model.uri.toString() !== DOCUMENT_URI) return { suggestions: [] }
       const text = model.getValue()
       const location = getLocation(text, model.getOffsetAt(position))
       if (!location.isAtPropertyKey) return { suggestions: valueSuggestions(model, position) }

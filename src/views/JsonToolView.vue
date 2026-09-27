@@ -3,12 +3,15 @@ import { computed, ref, watchEffect } from 'vue'
 import JsonTreePanel from '@/components/JsonTreePanel.vue'
 import MonacoJsonEditor from '@/components/MonacoJsonEditor.vue'
 import ProblemsPanel from '@/components/ProblemsPanel.vue'
+import SchemaPanel from '@/components/SchemaPanel.vue'
 import { useJsonDocumentStore } from '@/stores/jsonDocument'
+import { useSchemaSupportStore } from '@/stores/schemaSupport'
 import type { IndentOption } from '@/utils/json'
 
 const FOLD_LEVELS = [2, 3, 4, 5, 6, 7]
 
 const store = useJsonDocumentStore()
+const schemaStore = useSchemaSupportStore()
 const editorRef = ref<InstanceType<typeof MonacoJsonEditor> | null>(null)
 const activeTab = ref<'tree' | 'problems'>('tree')
 const fileInput = ref<HTMLInputElement | null>(null)
@@ -152,6 +155,20 @@ async function onFileChange(event: Event): Promise<void> {
         </select>
       </div>
 
+      <div class="toolbar-group">
+        <button
+          type="button"
+          class="toolbar-button"
+          title="$schema 内容映射管理"
+          @click="schemaStore.openPanel()"
+        >
+          $schema 映射
+          <span v-if="schemaStore.warnings.length > 0" class="tab-badge warn">
+            {{ schemaStore.warnings.length }}
+          </span>
+        </button>
+      </div>
+
       <div class="toolbar-group toolbar-group-end">
         <button type="button" class="toolbar-button" @click="copyDocument()">复制</button>
         <button type="button" class="toolbar-button" @click="downloadDocument()">下载</button>
@@ -231,5 +248,7 @@ async function onFileChange(event: Event): Promise<void> {
     <Transition name="toast">
       <div v-if="store.notice" class="toast">{{ store.notice }}</div>
     </Transition>
+
+    <SchemaPanel />
   </div>
 </template>

@@ -2,6 +2,7 @@ import * as monaco from 'monaco-editor'
 import EditorWorker from 'monaco-editor/editor/editor.worker.js?worker'
 import JsonWorker from 'monaco-editor/languages/features/json/json.worker.js?worker'
 import { registerJsonCompletion } from './completion'
+import { registerSchemaSupport } from './schema'
 import { MONACO_THEMES, MONACO_THEME, type ThemeMode } from './theme'
 
 let initialized = false
@@ -43,4 +44,5 @@ export function setupMonaco(): void {
   })
 
   registerJsonCompletion()
+  registerSchemaSupport()
 }

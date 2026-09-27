@@ -23,6 +23,8 @@
   --danger-soft: #f9e0dc;
   --success: #859900;
   --success-soft: #ecf0d4;
+  --warning: #b58900;
+  --warning-soft: #f6edd2;
 
   --editor-background: #fdf6e3;
   --json-key: #268bd2;
@@ -61,6 +63,8 @@
   --danger-soft: #3b2325;
   --success: #6a8759;
   --success-soft: #253226;
+  --warning: #bbb529;
+  --warning-soft: #35321f;
 
   --editor-background: #2b2b2b;
   --json-key: #9876aa;
@@ -315,6 +319,11 @@ body {
 .tab-badge.error {
   color: var(--danger);
   background: var(--danger-soft);
+}
+
+.tab-badge.warn {
+  color: var(--warning);
+  background: var(--warning-soft);
 }
 
 .tab-body {

@@ -2,15 +2,17 @@
 import type * as Monaco from 'monaco-editor'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { MONACO_THEME } from '@/monaco/theme'
+import { DOCUMENT_URI } from '@/monaco/uri'
 import { useJsonDocumentStore } from '@/stores/jsonDocument'
+import { useSchemaSupportStore, type SchemaWarning } from '@/stores/schemaSupport'
 import type { IndentOption, JsonIssue } from '@/utils/json'
 
 type MonacoApi = typeof import('monaco-editor')
 
-const DOCUMENT_URI = 'inmemory://json-tools/document.json'
 const MARKER_OWNER = 'json-tools'
 
 const store = useJsonDocumentStore()
+const schemaStore = useSchemaSupportStore()
 const host = ref<HTMLDivElement | null>(null)
 const ready = ref(false)
 
@@ -103,6 +105,25 @@ function toMarker(
   }
 }
 
+function toWarningMarker(
+  warning: SchemaWarning,
+  monacoApi: MonacoApi,
+  target: Monaco.editor.ITextModel,
+): Monaco.editor.IMarkerData {
+  const start = target.getPositionAt(warning.offset)
+  const end = target.getPositionAt(
+    Math.min(warning.offset + Math.max(warning.length, 1), target.getValueLength()),
+  )
+  return {
+    severity: monacoApi.MarkerSeverity.Warning,
+    message: warning.message,
+    startLineNumber: start.lineNumber,
+    startColumn: start.column,
+    endLineNumber: end.lineNumber,
+    endColumn: end.column,
+  }
+}
+
 function runAction(id: string): void {
   void editor?.getAction(id)?.run()
 }
@@ -186,13 +207,26 @@ onMounted(async () => {
       },
     ),
     watch(
-      () => store.issues,
-      (issues) => {
-        monacoApi.editor.setModelMarkers(
-          createdModel,
-          MARKER_OWNER,
-          issues.map((issue) => toMarker(issue, monacoApi, createdModel)),
-        )
+      [() => store.issues, () => schemaStore.warnings],
+      ([issues, warnings]) => {
+        monacoApi.editor.setModelMarkers(createdModel, MARKER_OWNER, [
+          ...issues.map((issue) => toMarker(issue, monacoApi, createdModel)),
+          ...warnings.map((warning) => toWarningMarker(warning, monacoApi, createdModel)),
+        ])
+      },
+      { immediate: true },
+    ),
+    watch(
+      () => schemaStore.schemas,
+      (schemas) => {
+        // Register inline schemas so completion and hover work without Monaco fetching anything.
+        // `$schema` in the document resolves against these by URI.
+        monacoApi.json.jsonDefaults.setDiagnosticsOptions({
+          validate: true,
+          allowComments: false,
+          enableSchemaRequest: false,
+          schemas: schemas.map(({ url, schema }) => ({ uri: url, schema })),
+        })
       },
       { immediate: true },
     ),
