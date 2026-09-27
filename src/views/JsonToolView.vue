@@ -94,7 +94,7 @@ async function onFileChange(event: Event): Promise<void> {
   <div class="app-shell">
     <header class="app-bar">
       <div class="app-brand">
-        <span class="app-mark">{ }</span>
+        <img class="app-mark" src="/logo.svg" alt="JSON 工具" />
         <div>
           <h1>JSON 工具</h1>
           <p>格式化 · 压缩 · 校验 · 结构导航</p>

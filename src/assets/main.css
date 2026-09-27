@@ -131,17 +131,10 @@ body {
 }
 
 .app-mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  display: block;
   width: 34px;
   height: 34px;
-  border-radius: 9px;
-  background: var(--accent);
-  color: var(--accent-contrast);
-  font-size: 12px;
-  font-weight: 700;
-  letter-spacing: -1px;
+  flex-shrink: 0;
 }
 
 .app-bar h1 {
