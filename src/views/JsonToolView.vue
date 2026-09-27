@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref, watchEffect } from 'vue'
+import { useI18n } from 'vue-i18n'
 import JsonTreePanel from '@/components/JsonTreePanel.vue'
 import ListViewPanel from '@/components/ListViewPanel.vue'
 import MonacoJsonEditor from '@/components/MonacoJsonEditor.vue'
 import ProblemsPanel from '@/components/ProblemsPanel.vue'
 import SchemaPanel from '@/components/SchemaPanel.vue'
+import { setLocale, type AppLocale } from '@/i18n'
 import { useJsonDocumentStore } from '@/stores/jsonDocument'
 import { useSchemaSupportStore } from '@/stores/schemaSupport'
 import type { IndentOption } from '@/utils/json'
@@ -13,20 +15,26 @@ const FOLD_LEVELS = [2, 3, 4, 5, 6, 7]
 
 const store = useJsonDocumentStore()
 const schemaStore = useSchemaSupportStore()
+const { t, locale } = useI18n()
 const editorRef = ref<InstanceType<typeof MonacoJsonEditor> | null>(null)
 const activeTab = ref<'tree' | 'problems'>('tree')
 const fileInput = ref<HTMLInputElement | null>(null)
+
+const localeOptions = computed(() => [
+  { value: 'zh-CN' as const, label: t('app.locale.zhCN') },
+  { value: 'en-US' as const, label: t('app.locale.enUS') },
+])
 
 watchEffect(() => {
   document.documentElement.dataset.theme = store.theme
 })
 
 const status = computed(() => {
-  if (store.analysis.status === 'empty') return { kind: 'idle', text: '空文档' }
+  if (store.analysis.status === 'empty') return { kind: 'idle', text: t('status.empty') }
   if (store.analysis.status === 'invalid') {
-    return { kind: 'error', text: `${store.issues.length} 个错误` }
+    return { kind: 'error', text: t('status.errorCount', store.issues.length) }
   }
-  return { kind: 'valid', text: 'JSON 有效' }
+  return { kind: 'valid', text: t('status.valid') }
 })
 
 function formatBytes(bytes: number): string {
@@ -43,6 +51,10 @@ function onFoldLevelChange(event: Event): void {
     editorRef.value?.foldLevel(level)
     editorRef.value?.focus()
   }
+}
+
+function onLocaleChange(event: Event): void {
+  setLocale((event.target as HTMLSelectElement).value as AppLocale)
 }
 
 function onIndentChange(event: Event): void {
@@ -94,20 +106,37 @@ async function onFileChange(event: Event): Promise<void> {
   <div class="app-shell">
     <header class="app-bar">
       <div class="app-brand">
-        <img class="app-mark" src="/logo.svg" alt="JSON 工具" />
+        <img class="app-mark" src="/logo.svg" :alt="$t('app.title')" />
         <div>
-          <h1>JSON 工具</h1>
-          <p>格式化 · 压缩 · 校验 · 结构导航</p>
+          <h1>{{ $t('app.title') }}</h1>
+          <p>{{ $t('app.tagline') }}</p>
         </div>
       </div>
-      <button
-        type="button"
-        class="toolbar-button"
-        :title="store.theme === 'light' ? '切换到深色主题' : '切换到浅色主题'"
-        @click="store.toggleTheme()"
-      >
-        {{ store.theme === 'light' ? '深色' : '浅色' }}
-      </button>
+      <div class="app-actions">
+        <select
+          id="locale-select"
+          name="locale"
+          class="select"
+          :value="locale"
+          :title="$t('app.locale.switchTo')"
+          :aria-label="$t('app.locale.label')"
+          @change="onLocaleChange"
+        >
+          <option v-for="item in localeOptions" :key="item.value" :value="item.value">
+            {{ item.label }}
+          </option>
+        </select>
+        <button
+          type="button"
+          class="toolbar-button"
+          :title="
+            store.theme === 'light' ? $t('app.theme.switchToDark') : $t('app.theme.switchToLight')
+          "
+          @click="store.toggleTheme()"
+        >
+          {{ store.theme === 'light' ? $t('app.theme.dark') : $t('app.theme.light') }}
+        </button>
+      </div>
     </header>
 
     <div class="toolbar">
@@ -115,44 +144,54 @@ async function onFileChange(event: Event): Promise<void> {
         <button
           type="button"
           class="toolbar-button accent"
-          title="格式化（Ctrl+Shift+F）"
+          :title="$t('toolbar.formatTitle')"
           @click="store.format()"
         >
-          格式化
+          {{ $t('toolbar.format') }}
         </button>
         <button
           type="button"
           class="toolbar-button"
-          title="压缩为单行（Ctrl+Shift+M）"
+          :title="$t('toolbar.minifyTitle')"
           @click="store.minify()"
         >
-          压缩
+          {{ $t('toolbar.minify') }}
         </button>
       </div>
 
       <div class="toolbar-group">
-        <button type="button" class="toolbar-button" @click="editorRef?.foldAll()">折叠全部</button>
-        <button type="button" class="toolbar-button" @click="editorRef?.unfoldAll()">
-          展开全部
+        <button type="button" class="toolbar-button" @click="editorRef?.foldAll()">
+          {{ $t('toolbar.foldAll') }}
         </button>
-        <select class="select" title="折叠到指定层级" @change="onFoldLevelChange">
-          <option value="">折叠到层级…</option>
+        <button type="button" class="toolbar-button" @click="editorRef?.unfoldAll()">
+          {{ $t('toolbar.unfoldAll') }}
+        </button>
+        <select
+          id="fold-level"
+          name="fold-level"
+          class="select"
+          :title="$t('toolbar.foldLevelTitle')"
+          @change="onFoldLevelChange"
+        >
+          <option value="">{{ $t('toolbar.foldLevelPlaceholder') }}</option>
           <option v-for="level in FOLD_LEVELS" :key="level" :value="level">
-            第 {{ level }} 层
+            {{ $t('toolbar.foldLevel', { level }) }}
           </option>
         </select>
       </div>
 
       <div class="toolbar-group">
         <select
+          id="indent"
+          name="indent"
           class="select"
           :value="String(store.indent)"
-          title="缩进方式"
+          :title="$t('toolbar.indentTitle')"
           @change="onIndentChange"
         >
-          <option value="2">缩进：2 空格</option>
-          <option value="4">缩进：4 空格</option>
-          <option value="tab">缩进：Tab</option>
+          <option value="2">{{ $t('toolbar.indent2') }}</option>
+          <option value="4">{{ $t('toolbar.indent4') }}</option>
+          <option value="tab">{{ $t('toolbar.indentTab') }}</option>
         </select>
       </div>
 
@@ -160,10 +199,10 @@ async function onFileChange(event: Event): Promise<void> {
         <button
           type="button"
           class="toolbar-button"
-          title="$schema 内容映射管理"
+          :title="$t('toolbar.schemaMappingTitle')"
           @click="schemaStore.openPanel()"
         >
-          $schema 映射
+          {{ $t('toolbar.schemaMapping') }}
           <span v-if="schemaStore.warnings.length > 0" class="tab-badge warn">
             {{ schemaStore.warnings.length }}
           </span>
@@ -171,20 +210,30 @@ async function onFileChange(event: Event): Promise<void> {
       </div>
 
       <div class="toolbar-group toolbar-group-end">
-        <button type="button" class="toolbar-button" @click="copyDocument()">复制</button>
-        <button type="button" class="toolbar-button" @click="downloadDocument()">下载</button>
-        <button type="button" class="toolbar-button" @click="pickFile()">导入</button>
+        <button type="button" class="toolbar-button" @click="copyDocument()">
+          {{ $t('toolbar.copy') }}
+        </button>
+        <button type="button" class="toolbar-button" @click="downloadDocument()">
+          {{ $t('toolbar.download') }}
+        </button>
+        <button type="button" class="toolbar-button" @click="pickFile()">
+          {{ $t('toolbar.import') }}
+        </button>
         <button type="button" class="toolbar-button" @click="store.loadSample('valid')">
-          示例
+          {{ $t('toolbar.sample') }}
         </button>
         <button type="button" class="toolbar-button" @click="store.loadSample('broken')">
-          错误示例
+          {{ $t('toolbar.sampleBroken') }}
         </button>
-        <button type="button" class="toolbar-button danger" @click="store.clear()">清空</button>
+        <button type="button" class="toolbar-button danger" @click="store.clear()">
+          {{ $t('toolbar.clear') }}
+        </button>
       </div>
 
       <input
+        id="file-input"
         ref="fileInput"
+        name="file"
         class="hidden-input"
         type="file"
         accept=".json,.txt,application/json,text/plain"
@@ -205,7 +254,7 @@ async function onFileChange(event: Event): Promise<void> {
             :class="{ active: activeTab === 'tree' }"
             @click="activeTab = 'tree'"
           >
-            结构
+            {{ $t('tabs.tree') }}
           </button>
           <button
             type="button"
@@ -213,7 +262,7 @@ async function onFileChange(event: Event): Promise<void> {
             :class="{ active: activeTab === 'problems' }"
             @click="activeTab = 'problems'"
           >
-            问题
+            {{ $t('tabs.problems') }}
             <span v-if="store.issues.length > 0" class="tab-badge error">
               {{ store.issues.length }}
             </span>
@@ -228,16 +277,20 @@ async function onFileChange(event: Event): Promise<void> {
 
     <footer class="status-bar">
       <div class="status-group">
-        <span>行 {{ store.cursor.line }}，列 {{ store.cursor.column }}</span>
-        <span v-if="store.selectionLength > 0">已选 {{ store.selectionLength }} 字符</span>
+        <span>{{
+          $t('status.cursor', { line: store.cursor.line, column: store.cursor.column })
+        }}</span>
+        <span v-if="store.selectionLength > 0">
+          {{ $t('status.selectedChars', store.selectionLength) }}
+        </span>
       </div>
       <div class="status-group status-group-center">
         <template v-if="store.stats">
-          <span>{{ store.stats.lines }} 行</span>
-          <span>{{ store.stats.characters }} 字符</span>
+          <span>{{ $t('status.lines', store.stats.lines) }}</span>
+          <span>{{ $t('status.characters', store.stats.characters) }}</span>
           <span>{{ formatBytes(store.stats.bytes) }}</span>
-          <span>{{ store.stats.values }} 个值</span>
-          <span>深度 {{ store.stats.depth }}</span>
+          <span>{{ $t('status.values', store.stats.values) }}</span>
+          <span>{{ $t('status.depth', { depth: store.stats.depth }) }}</span>
         </template>
         <span v-else>—</span>
       </div>

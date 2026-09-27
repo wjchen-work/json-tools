@@ -125,16 +125,16 @@ onBeforeUnmount(() => {
         class="list-panel"
         :class="{ fullscreen, resizing }"
         :style="panelStyle"
-        aria-label="列表查看"
+        :aria-label="$t('list.title')"
       >
         <header class="list-header" @pointerdown="onDragStart">
           <span class="list-grip" aria-hidden="true"></span>
-          <span class="list-heading">列表查看</span>
+          <span class="list-heading">{{ $t('list.title') }}</span>
           <button
             type="button"
             class="list-action"
-            :title="fullscreen ? '退出全屏' : '全屏'"
-            :aria-label="fullscreen ? '退出全屏' : '全屏'"
+            :title="fullscreen ? $t('list.exitFullscreen') : $t('list.fullscreen')"
+            :aria-label="fullscreen ? $t('list.exitFullscreen') : $t('list.fullscreen')"
             @click="toggleFullscreen()"
           >
             <svg viewBox="0 0 14 14" aria-hidden="true">
@@ -155,8 +155,8 @@ onBeforeUnmount(() => {
           <button
             type="button"
             class="list-action"
-            title="关闭面板"
-            aria-label="关闭面板"
+            :title="$t('list.closePanel')"
+            :aria-label="$t('list.closePanel')"
             @click="store.closeAll()"
           >
             ×
@@ -189,8 +189,8 @@ onBeforeUnmount(() => {
             <button
               type="button"
               class="list-tab-close"
-              title="关闭"
-              aria-label="关闭"
+              :title="$t('list.close')"
+              :aria-label="$t('list.close')"
               @click.stop="store.closeTab(tab.id)"
             >
               ×
@@ -225,8 +225,8 @@ onBeforeUnmount(() => {
             </tbody>
           </table>
           <div v-else class="list-empty">
-            <p v-if="!documentStore.tree">文档无法解析，暂时无法展示该数组</p>
-            <p v-else>未找到对应的数组，或数组为空</p>
+            <p v-if="!documentStore.tree">{{ $t('list.unparsable') }}</p>
+            <p v-else>{{ $t('list.notFound') }}</p>
           </div>
         </div>
       </section>

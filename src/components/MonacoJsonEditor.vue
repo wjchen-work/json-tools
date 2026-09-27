@@ -256,12 +256,12 @@ defineExpose({
   <div class="editor-shell">
     <div ref="host" class="editor-host"></div>
     <div v-if="!ready" class="editor-overlay">
-      <span class="editor-overlay-text">正在加载编辑器…</span>
+      <span class="editor-overlay-text">{{ $t('editor.loading') }}</span>
     </div>
     <div v-else-if="store.analysis.status === 'empty'" class="editor-overlay">
-      <span class="editor-overlay-text">粘贴或输入 JSON 内容</span>
+      <span class="editor-overlay-text">{{ $t('editor.placeholder') }}</span>
       <button type="button" class="ghost-button" @click="store.loadSample('valid')">
-        载入示例
+        {{ $t('editor.loadSample') }}
       </button>
     </div>
   </div>

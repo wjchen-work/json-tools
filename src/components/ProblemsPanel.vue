@@ -17,8 +17,8 @@ function reveal(issue: JsonIssue): void {
 <template>
   <div class="problems-panel">
     <div v-if="issues.length === 0" class="panel-empty">
-      <p>未发现问题</p>
-      <p class="panel-hint">符合 JSON 标准：不支持注释与尾随逗号</p>
+      <p>{{ $t('problems.none') }}</p>
+      <p class="panel-hint">{{ $t('problems.noneHint') }}</p>
     </div>
     <ul v-else class="problem-list">
       <li
@@ -30,7 +30,9 @@ function reveal(issue: JsonIssue): void {
         <span class="problem-dot"></span>
         <div class="problem-body">
           <p class="problem-message">{{ issue.message }}</p>
-          <p class="problem-location">行 {{ issue.line }}，列 {{ issue.column }}</p>
+          <p class="problem-location">
+            {{ $t('problems.location', { line: issue.line, column: issue.column }) }}
+          </p>
         </div>
       </li>
     </ul>

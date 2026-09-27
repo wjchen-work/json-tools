@@ -149,6 +149,12 @@ body {
   color: var(--text-muted);
 }
 
+.app-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .toolbar {
   display: flex;
   flex-wrap: wrap;

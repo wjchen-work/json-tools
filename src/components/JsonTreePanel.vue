@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useJsonDocumentStore } from '@/stores/jsonDocument'
 import { useListViewStore } from '@/stores/listView'
 import { nodeCopyValue, type JsonTreeNode } from '@/utils/json'
@@ -36,6 +37,7 @@ const props = defineProps<{ visible?: boolean }>()
 
 const store = useJsonDocumentStore()
 const listView = useListViewStore()
+const { t } = useI18n()
 const overrides = ref(new Map<string, boolean>())
 const scroller = ref<HTMLDivElement | null>(null)
 const scrollTop = ref(0)
@@ -154,7 +156,9 @@ function keyLabel(node: JsonTreeNode): string {
 }
 
 function summaryOf(node: JsonTreeNode): string {
-  return node.kind === 'object' ? `{ ${node.childCount} 个字段 }` : `[ ${node.childCount} 项 ]`
+  return node.kind === 'object'
+    ? `{ ${t('tree.objectSummary', node.childCount)} }`
+    : `[ ${t('tree.arraySummary', node.childCount)} ]`
 }
 
 function valueLabel(row: TreeRow): string {
@@ -201,18 +205,22 @@ onBeforeUnmount(() => {
 <template>
   <div class="tree-panel">
     <div class="tree-toolbar">
-      <span class="tree-count">{{ rows.length }} 行</span>
-      <button type="button" class="ghost-button" @click="setAllExpanded(true)">展开全部</button>
-      <button type="button" class="ghost-button" @click="setAllExpanded(false)">折叠全部</button>
+      <span class="tree-count">{{ $t('tree.rowCount', rows.length) }}</span>
+      <button type="button" class="ghost-button" @click="setAllExpanded(true)">
+        {{ $t('tree.expandAll') }}
+      </button>
+      <button type="button" class="ghost-button" @click="setAllExpanded(false)">
+        {{ $t('tree.collapseAll') }}
+      </button>
     </div>
 
     <div v-if="store.analysis.status === 'invalid'" class="panel-empty">
-      <p>{{ store.issues[0]?.message ?? '文档存在语法错误' }}</p>
-      <p class="panel-hint">共 {{ store.issues.length }} 处问题，可在「问题」标签页查看具体位置</p>
+      <p>{{ store.issues[0]?.message ?? $t('tree.syntaxError') }}</p>
+      <p class="panel-hint">{{ $t('tree.issueHint', store.issues.length) }}</p>
     </div>
     <div v-else-if="store.analysis.status === 'empty'" class="panel-empty">
-      <p>暂无内容</p>
-      <p class="panel-hint">粘贴 JSON 后会自动生成结构树</p>
+      <p>{{ $t('tree.empty') }}</p>
+      <p class="panel-hint">{{ $t('tree.emptyHint') }}</p>
     </div>
     <div v-else ref="scroller" class="tree-rows" @scroll="onScroll">
       <div class="tree-rows-inner" :style="{ height: totalHeight }">
@@ -236,7 +244,9 @@ onBeforeUnmount(() => {
             type="button"
             class="twisty"
             :class="{ expanded: isExpanded(entry.row.node, entry.row.depth) }"
-            :aria-label="isExpanded(entry.row.node, entry.row.depth) ? '折叠' : '展开'"
+            :aria-label="
+              isExpanded(entry.row.node, entry.row.depth) ? $t('tree.collapse') : $t('tree.expand')
+            "
             @click.stop="toggle(entry.row.node, entry.row.depth)"
           >
             <svg viewBox="0 0 12 12" aria-hidden="true">
@@ -271,7 +281,7 @@ onBeforeUnmount(() => {
         @click.stop
       >
         <button type="button" class="tree-menu-item" role="menuitem" @click="copyPath()">
-          复制 JSON 路径
+          {{ $t('tree.copyPath') }}
         </button>
         <button
           type="button"
@@ -280,10 +290,10 @@ onBeforeUnmount(() => {
           :disabled="contextMenu.node.key === null"
           @click="copyKey()"
         >
-          复制 Key
+          {{ $t('tree.copyKey') }}
         </button>
         <button type="button" class="tree-menu-item" role="menuitem" @click="copyValue()">
-          复制值
+          {{ $t('tree.copyValue') }}
         </button>
         <button
           v-if="contextMenu.node.kind === 'array'"
@@ -292,7 +302,7 @@ onBeforeUnmount(() => {
           role="menuitem"
           @click="openList()"
         >
-          列表查看
+          {{ $t('tree.openList') }}
         </button>
       </div>
     </Teleport>

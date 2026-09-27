@@ -189,10 +189,15 @@ onBeforeUnmount(() => {
         <aside class="schema-drawer">
           <header class="schema-header">
             <div class="schema-title">
-              <h2>$schema 内容映射</h2>
-              <p>自动拉取失败时，可在此手动粘贴内容，与 URL 一一对应</p>
+              <h2>{{ $t('schema.panelTitle') }}</h2>
+              <p>{{ $t('schema.panelHint') }}</p>
             </div>
-            <button type="button" class="schema-close" title="关闭" @click="store.closePanel()">
+            <button
+              type="button"
+              class="schema-close"
+              :title="$t('schema.close')"
+              @click="store.closePanel()"
+            >
               ×
             </button>
           </header>
@@ -201,14 +206,18 @@ onBeforeUnmount(() => {
             <section class="schema-top">
               <div class="schema-search-row">
                 <input
+                  id="schema-search"
                   ref="searchInput"
                   v-model="store.search"
+                  name="schema-search"
                   class="schema-input"
                   type="search"
-                  placeholder="搜索或输入 URL"
+                  :placeholder="$t('schema.searchPlaceholder')"
                   @keydown.enter="addFromSearch()"
                 />
-                <button type="button" class="toolbar-button" @click="addFromSearch()">新增</button>
+                <button type="button" class="toolbar-button" @click="addFromSearch()">
+                  {{ $t('schema.add') }}
+                </button>
               </div>
               <ul class="schema-list">
                 <li
@@ -223,24 +232,24 @@ onBeforeUnmount(() => {
                       {{ entry.mapping.url }}
                     </span>
                     <span v-if="entry.mapping.url === store.reference?.url" class="schema-tag">
-                      当前文档
+                      {{ $t('schema.currentDocument') }}
                     </span>
                   </div>
                   <div class="schema-item-meta">
                     <span class="schema-state" :class="entry.valid ? 'ok' : 'bad'">
-                      {{ entry.valid ? '有效' : entry.message }}
+                      {{ entry.valid ? $t('schema.valid') : entry.message }}
                     </span>
                     <span class="schema-time">{{ formatTime(entry.mapping.updatedAt) }}</span>
                   </div>
                 </li>
                 <li v-if="store.filteredEntries.length === 0" class="schema-empty">
                   <template v-if="store.search.trim()">
-                    <p>没有匹配的映射</p>
+                    <p>{{ $t('schema.noMatch') }}</p>
                     <button type="button" class="ghost-button" @click="addFromSearch">
-                      新增 “{{ store.search.trim() }}”
+                      {{ $t('schema.addNamed', { url: store.search.trim() }) }}
                     </button>
                   </template>
-                  <p v-else>暂无映射，输入 URL 后点击「新增」</p>
+                  <p v-else>{{ $t('schema.empty') }}</p>
                 </li>
               </ul>
             </section>
@@ -250,19 +259,21 @@ onBeforeUnmount(() => {
                 <div class="schema-detail-bar">
                   <input
                     v-if="store.activeMapping"
+                    id="schema-url"
+                    name="schema-url"
                     class="schema-input"
                     :value="store.activeMapping.url"
-                    title="编辑 URL"
+                    :title="$t('schema.editUrl')"
                     @change="onUrlChange"
                   />
-                  <span v-else class="schema-placeholder">未选择映射</span>
+                  <span v-else class="schema-placeholder">{{ $t('schema.noSelection') }}</span>
                   <button
                     v-if="store.activeMapping"
                     type="button"
                     class="toolbar-button"
                     @click="refetch()"
                   >
-                    拉取
+                    {{ $t('schema.fetch') }}
                   </button>
                   <button
                     v-if="store.activeMapping"
@@ -270,14 +281,16 @@ onBeforeUnmount(() => {
                     class="toolbar-button danger"
                     @click="removeActive()"
                   >
-                    删除
+                    {{ $t('schema.remove') }}
                   </button>
                 </div>
                 <div class="schema-editor-wrap">
                   <div ref="editorHost" class="schema-editor-host"></div>
-                  <div v-if="!editorReady" class="schema-editor-overlay">正在加载编辑器…</div>
+                  <div v-if="!editorReady" class="schema-editor-overlay">
+                    {{ $t('schema.editorLoading') }}
+                  </div>
                   <div v-else-if="!store.activeMapping" class="schema-editor-overlay">
-                    在检索框输入 URL 并点击「新增」，即可在此粘贴 schema 内容
+                    {{ $t('schema.editorHint') }}
                   </div>
                 </div>
               </div>
