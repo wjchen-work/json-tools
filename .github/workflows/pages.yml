@@ -1,0 +1,74 @@
+name: Deploy to GitHub Pages
+
+# 以 GitHub Actions 工件的方式部署到 GitHub Pages（不占用 gh-pages 分支）：
+# - 推送到 master 时自动部署
+# - 也可在 Actions 页面手动触发
+#
+# 站点 base 由 VITE_BASE_PATH 决定，按以下顺序取值：
+# 1) github-pages 环境的变量（Settings → Environments → github-pages → Environment variables）
+# 2) 仓库变量（Settings → Secrets and variables → Actions → Variables）
+# 3) 未设置时回退到项目站点前缀 /json-tools/
+# 该变量只作用于这里的 Pages 构建，不影响 Release 里打包的 zip。
+#
+# 构建与部署合并在一个 job 里，是为了让 job 能读到 github-pages 的环境变量；
+# 拆成两个 job 时，只有声明了 environment 的那个能读到。
+on:
+  push:
+    branches: ['master']
+
+  workflow_dispatch:
+
+# 部署到 Pages 需要 pages / id-token 权限
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# 同一时间只允许一个 Pages 部署，排队中的旧任务会被跳过；
+# 但不取消正在进行的部署，保证线上产物完整。
+concurrency:
+  group: 'pages'
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: 构建并部署到 GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 项目站点地址是 https://<user>.github.io/json-tools/，资源需带上前缀
+      - name: 构建（含类型检查）
+        run: pnpm build
+        env:
+          VITE_BASE_PATH: ${{ vars.VITE_BASE_PATH || '/json-tools/' }}
+
+      - name: 配置 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 上传构建产物
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+      - name: 发布到 Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
