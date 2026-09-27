@@ -1,0 +1,92 @@
+name: Release
+
+# 推送 v* 标签时触发（例如 v1.0.0）：
+# 1) 构建默认 base 的产物，打包并创建 GitHub Release
+# 2) 构建 base=/json-tools/ 的产物，部署到 GitHub Pages（gh-pages 分支）
+on:
+  push:
+    tags:
+      - 'v*'
+
+# 创建 Release、推送 gh-pages 分支都需要写权限
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: 构建并发布 Release
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 不传 VITE_BASE_PATH，base 走默认的 '/'，解压后可放在任意路径提供
+      - name: 构建（含类型检查）
+        run: pnpm build
+
+      - name: 打包构建产物
+        run: |
+          cd dist
+          zip -r "../json-tools-${{ github.ref_name }}.zip" .
+
+      - name: 创建 Release 并上传产物
+        uses: softprops/action-gh-release@v2
+        with:
+          files: json-tools-${{ github.ref_name }}.zip
+          generate_release_notes: true
+          draft: false
+          prerelease: ${{ contains(github.ref_name, '-') }}
+
+  pages:
+    name: 部署到 GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v5
+
+      - name: 安装 pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: 安装 Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: 安装依赖
+        run: pnpm install --frozen-lockfile
+
+      # 项目站点地址是 https://<user>.github.io/json-tools/，资源需带上前缀
+      - name: 构建（含类型检查）
+        run: pnpm build
+        env:
+          VITE_BASE_PATH: /json-tools/
+
+      - name: 发布到 gh-pages 分支
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          # 自动生成 .nojekyll，避免 Jekyll 忽略下划线开头的资源
+          enable_jekyll: false
