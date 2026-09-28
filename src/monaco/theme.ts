@@ -64,8 +64,12 @@ export const MONACO_THEMES: Record<ThemeMode, MonacoThemeDefinition> = {
       'editorStickyScrollHover.background': '#e4decc',
       'editorWidget.background': '#fdf6e3',
       'editorWidget.border': '#d6d0bf',
+      // The base light theme assumes a dark selection: white text and a near-white match highlight.
+      // This theme uses a pale selection, so pin dark foregrounds or the row becomes unreadable.
       'editorSuggestWidget.selectedBackground': '#d7e7f2',
+      'editorSuggestWidget.selectedForeground': '#073642',
       'editorSuggestWidget.highlightForeground': '#268bd2',
+      'editorSuggestWidget.focusHighlightForeground': '#0066bf',
       'editorHoverWidget.background': '#fdf6e3',
       'editorHoverWidget.border': '#d6d0bf',
       'editorError.foreground': '#dc322f',
@@ -113,7 +117,9 @@ export const MONACO_THEMES: Record<ThemeMode, MonacoThemeDefinition> = {
       'editorWidget.background': '#3c3f41',
       'editorWidget.border': '#555555',
       'editorSuggestWidget.selectedBackground': '#214283',
+      'editorSuggestWidget.selectedForeground': '#ffffff',
       'editorSuggestWidget.highlightForeground': '#6ea8fe',
+      'editorSuggestWidget.focusHighlightForeground': '#6ea8fe',
       'editorHoverWidget.background': '#3c3f41',
       'editorHoverWidget.border': '#555555',
       'editorError.foreground': '#ff6b68',
