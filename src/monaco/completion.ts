@@ -1,53 +1,9 @@
 import * as monaco from 'monaco-editor'
 import { getLocation, type JSONPath } from 'jsonc-parser'
 import { DOCUMENT_URI } from '@/monaco/uri'
+import { useSchemaSupportStore } from '@/stores/schemaSupport'
 import { collectPropertyKeys, existingKeysAt } from '@/utils/json'
-
-/** Field names offered when the document itself has nothing to suggest. */
-const COMMON_KEYS = [
-  'id',
-  'name',
-  'type',
-  'value',
-  'data',
-  'code',
-  'message',
-  'success',
-  'error',
-  'status',
-  'items',
-  'list',
-  'total',
-  'page',
-  'pageSize',
-  'size',
-  'count',
-  'key',
-  'label',
-  'title',
-  'description',
-  'url',
-  'path',
-  'enabled',
-  'children',
-  'meta',
-  'version',
-  'createdAt',
-  'updatedAt',
-  'timestamp',
-  'userId',
-  'user',
-  'email',
-  'phone',
-  'address',
-  'tags',
-  'config',
-  'options',
-  'params',
-  'result',
-  'remark',
-  'extra',
-]
+import { findSchemaReference } from '@/utils/schema'
 
 function escapeKey(key: string): string {
   return JSON.stringify(key).slice(1, -1)
@@ -148,19 +104,6 @@ function keySuggestions(
     })
   })
 
-  COMMON_KEYS.forEach((key, index) => {
-    if (existing.has(key)) return
-    suggestions.push({
-      label: key,
-      kind: monaco.languages.CompletionItemKind.Property,
-      detail: '常用字段',
-      insertText: insertTextFor(key),
-      filterText: key,
-      sortText: `1${String(index).padStart(4, '0')}`,
-      range,
-    })
-  })
-
   return suggestions
 }
 
@@ -207,6 +150,13 @@ function valueSuggestions(
   return [...literals, ...snippets]
 }
 
+/** True when the document's `$schema` resolves to a schema registered with Monaco. */
+function hasRegisteredSchema(text: string): boolean {
+  const reference = findSchemaReference(text)
+  if (!reference) return false
+  return useSchemaSupportStore().schemas.some((entry) => entry.url === reference.url)
+}
+
 export function registerJsonCompletion(): monaco.IDisposable {
   return monaco.languages.registerCompletionItemProvider('json', {
     triggerCharacters: ['"', ':'],
@@ -215,6 +165,10 @@ export function registerJsonCompletion(): monaco.IDisposable {
       // falls back to Monaco's built-in JSON completion.
       if (model.uri.toString() !== DOCUMENT_URI) return { suggestions: [] }
       const text = model.getValue()
+      // With a usable schema, Monaco's built-in JSON completion already offers the schema's
+      // properties and values. Stay out of the way so candidates are not diluted with keys
+      // collected from elsewhere in the document.
+      if (hasRegisteredSchema(text)) return { suggestions: [] }
       const location = getLocation(text, model.getOffsetAt(position))
       if (!location.isAtPropertyKey) return { suggestions: valueSuggestions(model, position) }
       // At a key position the path ends with the key being typed, so drop it to get the
